@@ -1,0 +1,11 @@
+const API_BASE_URL="http://localhost:8080/api";
+const token=()=>localStorage.getItem("taskflow_token");
+function esc(v){const d=document.createElement("div");d.textContent=v??"";return d.innerHTML}
+function alertBox(m,t="danger"){document.getElementById("alertBox").innerHTML=`<div class="alert alert-${t}">${esc(m)}</div>`}
+function logout(){localStorage.removeItem("taskflow_token");localStorage.removeItem("taskflow_user");location.href="index.html"}
+async function parse(r){const t=await r.text();if(!t)return{};try{return JSON.parse(t)}catch{return{message:t}}}
+async function api(url,opt={}){if(!token()){logout();throw Error("Authentication required.")}const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),"Authorization":`Bearer ${token()}`,"Content-Type":"application/json"}});if(r.status===401||r.status===403){logout();throw Error("Session expired.")}const d=await parse(r);if(!r.ok)throw Error(d.message||d.error||"Request failed.");return d}
+const id=()=>new URLSearchParams(location.search).get("id");
+async function loadTask(){try{const t=await api(`${API_BASE_URL}/tasks/${id()}`);document.getElementById("title").value=t.title||"";document.getElementById("description").value=t.description||"";document.getElementById("priority").value=t.priority||"MEDIUM";document.getElementById("dueDate").value=t.dueDate||"";if(document.getElementById("status"))document.getElementById("status").value=t.status||"PENDING"}catch(e){alertBox(e.message)}}
+async function submitTask(e){e.preventDefault();const b=document.getElementById("saveBtn");b.disabled=true;const taskId=id();const p={title:document.getElementById("title").value.trim(),description:document.getElementById("description").value.trim(),priority:document.getElementById("priority").value,dueDate:document.getElementById("dueDate").value||null};if(document.getElementById("status"))p.status=document.getElementById("status").value;try{if(!p.title)throw Error("Task title is required.");await api(taskId?`${API_BASE_URL}/tasks/${taskId}`:`${API_BASE_URL}/tasks`,{method:taskId?"PUT":"POST",body:JSON.stringify(p)});location.href="dashboard.html"}catch(e){alertBox(e.message)}finally{b.disabled=false}}
+document.addEventListener("DOMContentLoaded",()=>{if(!token()){location.href="index.html";return}logoutBtn.onclick=logout;taskForm.onsubmit=submitTask;if(id())loadTask()});

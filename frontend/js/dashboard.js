@@ -1,0 +1,16 @@
+const API_BASE_URL="http://localhost:8080/api";
+const token=()=>localStorage.getItem("taskflow_token");
+const user=()=>{try{return JSON.parse(localStorage.getItem("taskflow_user"))}catch{return null}};
+const esc=v=>{const d=document.createElement("div");d.textContent=v??"";return d.innerHTML};
+function alertBox(m,t="danger"){document.getElementById("alertBox").innerHTML=`<div class="alert alert-${t}">${esc(m)}</div>`}
+function logout(){localStorage.removeItem("taskflow_token");localStorage.removeItem("taskflow_user");location.href="index.html"}
+async function api(url,opt={}){if(!token()){logout();throw Error("Authentication required.")}const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),"Authorization":`Bearer ${token()}`,"Content-Type":"application/json"}});if(r.status===401||r.status===403){logout();throw Error("Session expired.")}const t=await r.text();const d=t?JSON.parse(t):{};if(!r.ok)throw Error(d.message||d.error||"Request failed.");return d}
+const date=v=>v?new Date(`${v}T00:00:00`).toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}):"No due date";
+const statusClass=s=>s==="COMPLETED"?"status-completed":s==="IN_PROGRESS"?"status-progress":"status-pending";
+const priorityClass=p=>p==="HIGH"?"priority-high":p==="MEDIUM"?"priority-medium":"priority-low";
+const statusLabel=s=>s==="IN_PROGRESS"?"In Progress":s==="COMPLETED"?"Completed":"Pending";
+async function load(){try{const[d,t]=await Promise.all([api(`${API_BASE_URL}/tasks/dashboard`),api(`${API_BASE_URL}/tasks`)]);totalTasks.textContent=d.totalTasks??0;pendingTasks.textContent=d.pendingTasks??0;inProgressTasks.textContent=d.inProgressTasks??0;completedTasks.textContent=d.completedTasks??0;render(t)}catch(e){alertBox(e.message)}}
+function render(tasks){if(!tasks.length){tasksContainer.innerHTML='<div class="empty-state"><i class="bi bi-clipboard-check"></i><strong>No tasks yet</strong><span>Create your first task to get started.</span><a href="add-task.html" class="btn btn-primary btn-sm mt-2">Add Task</a></div>';return}tasksContainer.innerHTML=tasks.map(t=>`<div class="task-row"><div class="task-main"><div class="task-title">${esc(t.title)}</div>${t.description?`<div class="task-description">${esc(t.description)}</div>`:""}<div class="task-meta"><span class="badge-soft ${statusClass(t.status)}">${statusLabel(t.status)}</span><span class="badge-soft ${priorityClass(t.priority)}">${esc(t.priority||"MEDIUM")}</span><span class="task-date"><i class="bi bi-calendar3 me-1"></i>${date(t.dueDate)}</span></div></div><div class="task-actions"><button class="icon-btn" onclick="editTask(${t.id})"><i class="bi bi-pencil"></i></button><button class="icon-btn delete" onclick="deleteTask(${t.id})"><i class="bi bi-trash3"></i></button></div></div>`).join("")}
+function editTask(id){location.href=`edit-task.html?id=${id}`}
+async function deleteTask(id){if(!confirm("Are you sure you want to delete this task?"))return;try{await api(`${API_BASE_URL}/tasks/${id}`,{method:"DELETE"});alertBox("Task deleted successfully.","success");load()}catch(e){alertBox(e.message)}}
+document.addEventListener("DOMContentLoaded",()=>{if(!token()){location.href="index.html";return}const u=user();if(u)userName.textContent=`Hi, ${u.name}`;logoutBtn.onclick=logout;refreshBtn.onclick=load;load()});

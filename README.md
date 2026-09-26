@@ -52,8 +52,8 @@ The application creates/updates tables using Hibernate.
 Default development credentials in `application.properties` are:
 
 ```text
-username=root
-password=root
+username=[username]
+password=[password]
 ```
 
 Better: set an environment variable:

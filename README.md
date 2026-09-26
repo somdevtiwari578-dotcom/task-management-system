@@ -1,4 +1,4 @@
-# Task Management System - Backend
+# Task Management System - Full Stack
 
 Secure Java Spring Boot backend for a Task Management System.
 

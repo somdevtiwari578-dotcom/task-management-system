@@ -152,7 +152,7 @@ This requires an ADMIN role.
 - For deployment, use environment variables/secrets.
 - HTTPS should be used in production.
 
-## Project Interview Flow
+## Project Flow
 
 1. User registers.
 2. Password is encoded using BCrypt.
